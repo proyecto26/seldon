@@ -1,15 +1,16 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "seldon",
-  "description": "Independent plan/spec reviewer for AI coding agents. Verifies claims against the workspace and returns structured verdicts with findings.",
+  "name": "seldon-marketplace",
+  "description": "Independent plan/spec reviewer for AI coding agents — multi-judge LLM-as-a-Judge with structured verdicts and workspace verification.",
   "owner": {
-    "name": "degrammer"
+    "name": "Proyecto 26",
+    "email": "jd@proyecto26.com"
   },
   "plugins": [
     {
       "name": "seldon",
-      "description": "Independent plan/spec reviewer for AI coding agents. Verifies claims against the workspace and returns structured verdicts with findings.",
-      "version": "1.1.0",
+      "description": "Independent plan/spec reviewer. Reads a plan, verifies claims against the workspace, and returns a structured verdict (approve, approve_with_changes, request_major_revision) with confidence score and findings. Pluggable judges: Anthropic, OpenAI, Codex.",
+      "version": "1.0.0",
       "source": "./",
       "strict": false,
       "skills": ["./skills/seldon"],

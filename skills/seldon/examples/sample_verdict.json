@@ -1,0 +1,29 @@
+{
+  "verdict": "approve_with_changes",
+  "summary": "Plan is sound but lacks a documented rollback path and explicit success metrics.",
+  "confidence": 0.78,
+  "strengths": [
+    "Clear scope with an explicit out-of-scope section",
+    "Risks identified up-front, including the codex workspace constraint"
+  ],
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "severity": "medium",
+      "title": "No rollback plan documented",
+      "why_it_matters": "Without a stated rollback, a regression in the runner contract could prolong any incident.",
+      "evidence": "examples/demo_plan.md has no 'Rollback' section.",
+      "references": ["examples/demo_plan.md:1"]
+    },
+    {
+      "severity": "low",
+      "title": "Success criteria are implicit",
+      "why_it_matters": "Reviewers cannot tell when the harness is 'done' without measurable acceptance criteria.",
+      "evidence": "Approach lists steps but no pass/fail thresholds.",
+      "references": ["examples/demo_plan.md:8"]
+    }
+  ],
+  "open_questions": [
+    "Should the harness fail closed on schema violations, or only warn?"
+  ]
+}

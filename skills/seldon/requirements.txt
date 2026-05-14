@@ -1,0 +1,9 @@
+# Optional dependencies for validating runner output against seldon.schema.json.
+# The runners in scripts/ themselves rely only on the Python standard library
+# (the `json` module) plus `bash`, `curl`, `git`, and the `codex` CLI.
+#
+# Install in a virtualenv to avoid PEP 668 system-Python conflicts:
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+#
+jsonschema>=4.20

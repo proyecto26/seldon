@@ -4,3 +4,4 @@ judge-runner.sh
 # Build artifacts
 dist/
 *.zip
+.DS_Store
