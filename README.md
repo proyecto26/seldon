@@ -28,7 +28,7 @@ This plugin ships one skill: **Seldon**, with three pluggable judges.
 
 *Independent plan/spec reviewer with workspace verification.*
 
-- **Multi-judge LLM-as-a-Judge**: Plug in Anthropic (Claude), OpenAI (GPT), or Codex (via the [Codex plugin](https://github.com/openai/codex)) — or fall back to inline review using the current agent.
+- **Multi-judge LLM-as-a-Judge**: Plug in Anthropic (Claude), OpenAI (GPT), or Codex (via the [Codex plugin](https://github.com/openai/codex-plugin-cc)) — or fall back to inline review using the current agent.
 - **Structured Verdicts**: Every response conforms to a strict JSON Schema (`approve`, `approve_with_changes`, `request_major_revision` + confidence + findings).
 - **Workspace Verification**: The inline reviewer and codex judge can traverse your codebase to verify claims; the API runners get every file you pass as arguments.
 - **Focus Modes**: Six pre-baked weighting profiles — `balanced`, `architecture`, `evaluation`, `product`, `operations`, `safety`.
@@ -44,7 +44,7 @@ This plugin ships one skill: **Seldon**, with three pluggable judges.
 
 - **Claude Code** (CLI) or **Claude Desktop** — no API keys required for the inline reviewer
 - **Optional, per external judge:**
-  - `codex` → install the [Codex plugin](https://github.com/openai/codex) (`/codex:setup`)
+  - `codex` → install the [Codex plugin](https://github.com/openai/codex-plugin-cc) (`/codex:setup`)
   - `anthropic` → export `ANTHROPIC_API_KEY`
   - `openai` → export `OPENAI_API_KEY`
 - **For schema validation tooling** (optional): `python3` with `jsonschema` (see [Testing](#testing))
@@ -194,7 +194,7 @@ By default, Seldon runs **inline** — the current agent performs the review usi
 
 | Runner | LLM | Workspace access | Required setup |
 |--------|-----|------------------|----------------|
-| `scripts/codex.sh` | gpt-5.4 (default) via Codex companion | ✅ Read-only sandbox | Install the [Codex plugin](https://github.com/openai/codex) and run `/codex:setup` |
+| `scripts/codex.sh` | gpt-5.4 (default) via Codex companion | ✅ Read-only sandbox | Install the [Codex plugin](https://github.com/openai/codex-plugin-cc) and run `/codex:setup` |
 | `scripts/anthropic.sh` | claude-sonnet-4-6 (default) | ❌ Sees only files passed as args | `export ANTHROPIC_API_KEY=…` |
 | `scripts/openai.sh` | gpt-4o (default) | ❌ Sees only files passed as args | `export OPENAI_API_KEY=…` |
 

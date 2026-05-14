@@ -137,7 +137,7 @@ JSON Schema (Draft 2020-12) that defines the verdict object the runners return. 
 
 External judge runners live next to this `SKILL.md`. Each accepts `--focus <mode> <plan-file> [supporting-files...]` and emits verdict JSON on stdout matching `seldon.schema.json`.
 
-- **`scripts/codex.sh`** — Invokes `codex-companion.mjs task --json` from the Codex plugin. Discovers the companion automatically from `~/.claude/plugins`. Requires the Codex plugin to be installed (`/codex:setup`). Embeds the schema in the prompt; parses the verdict JSON from `rawOutput`. Override model with `JUDGE_MODEL`, reasoning effort with `JUDGE_REASONING` (default `xhigh`).
+- **`scripts/codex.sh`** — Invokes `codex-companion.mjs task --json` from the [Codex plugin](https://github.com/openai/codex-plugin-cc). Discovers the companion automatically from `~/.claude/plugins`. Requires the Codex plugin to be installed (`/codex:setup`). Embeds the schema in the prompt; parses the verdict JSON from `rawOutput`. Override model with `JUDGE_MODEL`, reasoning effort with `JUDGE_REASONING` (default `xhigh`).
 - **`scripts/anthropic.sh`** — Calls the Anthropic Messages API. Reads `ANTHROPIC_API_KEY`. Default model `claude-sonnet-4-6` (override with `JUDGE_MODEL`).
 - **`scripts/openai.sh`** — Calls the OpenAI Chat Completions API with `response_format=json_object`. Reads `OPENAI_API_KEY`. Default model `gpt-4o` (override with `JUDGE_MODEL`).
 - **`scripts/validate.sh`** — End-to-end harness: chooses a judge (auto / explicit), runs it, validates the JSON against `seldon.schema.json` using Python's `jsonschema`, and prints a one-line confidence summary. Use it for smoke-testing a runner before relying on its output.
