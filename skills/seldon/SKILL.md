@@ -1,6 +1,6 @@
 ---
 name: seldon
-description: This skill should be used when the user asks to "review my plan", "judge this spec", "verify this design doc", "second opinion on this RFC", "run seldon", or wants an independent verdict on a plan, spec, or design document. Sends the provided files to an external judge (Anthropic, OpenAI, or Codex via plugin) or performs an inline workspace review, and returns a structured verdict. Note: API runners (anthropic, openai) can only evaluate files explicitly passed to them — only the codex runner and the inline reviewer can traverse the workspace.
+description: This skill should be used when the user asks to "review my plan", "judge this spec", "verify this design doc", "second opinion on this RFC", "run seldon", or wants an independent verdict on a plan, spec, or design document. Sends the provided files to an external judge (Anthropic, OpenAI, or Codex via plugin) or performs an inline workspace review, and returns a structured verdict. Note — API runners (anthropic, openai) can only evaluate files explicitly passed to them; only the codex runner and the inline reviewer can traverse the workspace.
 ---
 
 # Seldon — Independent Plan Reviewer
