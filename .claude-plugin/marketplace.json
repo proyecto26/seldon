@@ -9,11 +9,13 @@
   "plugins": [
     {
       "name": "seldon",
-      "description": "Independent plan/spec reviewer. Reads a plan, verifies claims against the workspace, and returns a structured verdict (approve, approve_with_changes, request_major_revision) with confidence score and findings. Pluggable judges: Anthropic, OpenAI, Codex.",
-      "version": "1.0.0",
+      "description": "Independent plan/spec reviewer for AI coding agents. Reads a plan, verifies claims against the workspace, and returns a structured verdict — approve, approve_with_changes, or request_major_revision — with confidence score and findings. Supports multiple LLM judges (Anthropic, OpenAI, Codex) for true model independence.",
+      "version": "1.1.0",
       "source": "./",
       "strict": false,
-      "skills": ["./skills/seldon"],
+      "skills": [
+        "./skills/seldon"
+      ],
       "category": "development"
     }
   ]

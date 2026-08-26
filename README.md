@@ -18,7 +18,7 @@
 
 Feed Seldon a plan, spec, or proposal. It reads the document, inspects your workspace for evidence, and returns a verdict — **approve**, **approve_with_changes**, or **request_major_revision** — with a confidence score (0–1) and concrete findings tagged by severity and file references.
 
-Works out of the box as an inline skill for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Plug in [Codex](#codex), [OpenAI](#openai-api), or [Anthropic](#anthropic-api) as an external judge for true model independence — or run all three and compare verdicts side by side.
+Works out of the box as an inline skill in **Claude Code, OpenAI Codex, Cursor, and GitHub Copilot CLI** — packaged as an [Agent Plugins 1.0](https://agent-plugins.org/) plugin plus native manifests for each host. Plug in [Codex](#codex), [OpenAI](#openai-api), or [Anthropic](#anthropic-api) as an external judge for true model independence — or run all three and compare verdicts side by side.
 
 ## Skill
 
@@ -42,28 +42,37 @@ This plugin ships one skill: **Seldon**, with three pluggable judges.
 
 ### Prerequisites
 
-- **Claude Code** (CLI) or **Claude Desktop** — no API keys required for the inline reviewer
+- One supported host: **Claude Code**, **OpenAI Codex**, **Cursor**, or **GitHub Copilot CLI** — no API keys required for the inline reviewer
 - **Optional, per external judge:**
-  - `codex` → install the [Codex plugin](https://github.com/openai/codex-plugin-cc) (`/codex:setup`)
+  - `codex` → the [`codex` CLI](https://github.com/openai/codex) on PATH (`npm i -g @openai/codex`), or in Claude Code the [Codex plugin](https://github.com/openai/codex-plugin-cc) (`/codex:setup`)
   - `anthropic` → export `ANTHROPIC_API_KEY`
   - `openai` → export `OPENAI_API_KEY`
 - **For schema validation tooling** (optional): `python3` with `jsonschema` (see [Testing](#testing))
 
 ### Installation
 
-#### Option 1: Claude Code Plugin (Recommended)
+#### Option 1: Install as a plugin (Recommended)
 
-Install via Claude Code's built-in plugin system:
+Pick your host. Each one reads its own manifest from this repo, so the same `proyecto26/seldon` source works everywhere.
 
-```bash
-# Add the marketplace
-/plugin marketplace add proyecto26/seldon
+| Host | Install |
+|------|---------|
+| **Claude Code** | `/plugin marketplace add proyecto26/seldon` then `/plugin install seldon` |
+| **OpenAI Codex** | `codex plugin marketplace add proyecto26/seldon` then open `/plugins` in Codex and install **Seldon** |
+| **GitHub Copilot CLI** | `copilot plugin marketplace add proyecto26/seldon` then `copilot plugin install seldon@seldon-marketplace` |
+| **Cursor** | Settings → Plugins → install from Git URL `https://github.com/proyecto26/seldon` (Agent Plugins format is detected from the root `plugin.json`) |
 
-# Install the plugin
-/plugin install seldon
-```
+After installing, the `seldon` skill triggers automatically on phrases like *"review my plan"*, *"judge this spec"*, *"second opinion on this RFC"* (in Claude Code it is also available as `/seldon`).
 
-After installing, the `/seldon` skill triggers automatically on phrases like *"review my plan"*, *"judge this spec"*, *"second opinion on this RFC"*.
+<details>
+<summary>How the multi-host packaging works</summary>
+
+- `plugin.json` (repo root) — the portable [Agent Plugins 1.0](https://agent-plugins.org/specification) manifest. Cursor and Copilot CLI read this directly and discover `skills/` automatically.
+- `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` — OpenAI Codex manifest and marketplace catalog.
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — Claude Code manifest and marketplace catalog (Copilot CLI also reads this marketplace file).
+- `scripts/check-manifests.sh` asserts that `name`, `version` and `description` stay identical across all of them.
+
+</details>
 
 #### Option 2: CLI Install via skills.sh
 
@@ -194,18 +203,24 @@ By default, Seldon runs **inline** — the current agent performs the review usi
 
 | Runner | LLM | Workspace access | Required setup |
 |--------|-----|------------------|----------------|
-| `scripts/codex.sh` | gpt-5.4 (default) via Codex companion | ✅ Read-only sandbox | Install the [Codex plugin](https://github.com/openai/codex-plugin-cc) and run `/codex:setup` |
+| `scripts/codex.sh` | Codex default model (e.g. gpt-5.5) | ✅ Read-only sandbox | `codex` CLI on PATH, **or** in Claude Code the [Codex plugin](https://github.com/openai/codex-plugin-cc) (`/codex:setup`) |
 | `scripts/anthropic.sh` | claude-sonnet-4-6 (default) | ❌ Sees only files passed as args | `export ANTHROPIC_API_KEY=…` |
 | `scripts/openai.sh` | gpt-4o (default) | ❌ Sees only files passed as args | `export OPENAI_API_KEY=…` |
 
 ### Codex
 
-Routes through the Codex plugin's `codex-companion.mjs` task runner. The Codex agent can read other workspace files to verify claims.
+Runs a read-only Codex agent rooted at your git workspace, so it can read other files to verify claims. Two backends, auto-selected:
+
+- **`cli`** (preferred, works in every host) — `codex exec --sandbox read-only --output-schema seldon.schema.json`. Selected only if the `codex` on PATH advertises every flag the runner needs; otherwise auto mode falls back to the companion.
+- **`companion`** (Claude Code only) — `codex-companion.mjs` from the Codex plugin for Claude Code. Auto mode uses it only inside a Claude Code session; elsewhere set `SELDON_CODEX_BACKEND=companion` explicitly, because it runs with that Claude Code installation's configuration and credentials.
+
+Either way the runner validates the verdict against `seldon.schema.json` before printing it.
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `JUDGE_MODEL` | `gpt-5.4` | Codex model |
+| `JUDGE_MODEL` | Codex default | Codex model |
 | `JUDGE_REASONING` | `xhigh` | Reasoning effort |
+| `SELDON_CODEX_BACKEND` | auto | Force `cli` or `companion` |
 
 ### OpenAI API
 
@@ -275,9 +290,16 @@ Every runner returns JSON conforming to [`skills/seldon/seldon.schema.json`](ski
 
 ```
 seldon/
+├── plugin.json                    # Agent Plugins 1.0 manifest (Cursor, Copilot CLI)
+├── .codex-plugin/
+│   └── plugin.json                # OpenAI Codex manifest
+├── .agents/plugins/
+│   └── marketplace.json           # OpenAI Codex marketplace catalog
 ├── .claude-plugin/
-│   ├── plugin.json                # Plugin manifest
-│   └── marketplace.json           # Marketplace configuration
+│   ├── plugin.json                # Claude Code manifest
+│   └── marketplace.json           # Claude Code / Copilot CLI marketplace catalog
+├── scripts/
+│   └── check-manifests.sh         # Asserts all manifests agree on name/version/description
 └── skills/
     └── seldon/                    # The reviewer skill
         ├── SKILL.md               # Skill instructions (third-person trigger phrases)
@@ -302,7 +324,12 @@ To exercise a real LLM round-trip end-to-end and validate the JSON output agains
 ```bash
 # One-time: set up a venv with jsonschema (avoids PEP 668 on macOS)
 python3 -m venv skills/seldon/.venv
-skills/seldon/.venv/bin/pip install -r skills/seldon/requirements.txt
+skills/seldon/.venv/bin/pip install -r skills/seldon/requirements.txt   # Windows: .venv/Scripts/pip
+
+# Release gate: manifests agree on name/version/description and install wiring, and the
+# host validators that exist (claude plugin validate, Agent Plugins schema) pass.
+# Fails closed if a validator cannot run; add --allow-skips for local convenience.
+bash scripts/check-manifests.sh
 
 # Auto-detect: codex → ANTHROPIC_API_KEY → OPENAI_API_KEY
 bash skills/seldon/scripts/validate.sh skills/seldon/examples/demo_plan.md
@@ -319,12 +346,14 @@ Each invocation prints a one-line verdict + confidence summary, then the full JS
 
 ## Compatibility
 
-Seldon works with any agent that supports `SKILL.md` skills:
+Seldon is packaged as an [Agent Plugins 1.0](https://agent-plugins.org/) plugin and ships native manifests for:
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (recommended — full plugin support)
-- [Claude Desktop](https://claude.ai/download) via Cowork plugin installation
-- [Gemini CLI](https://github.com/google-gemini/gemini-cli)
-- Any agent supporting the skills.sh ecosystem
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — `.claude-plugin/`
+- [OpenAI Codex](https://developers.openai.com/codex) — `.codex-plugin/` + `.agents/plugins/`
+- [Cursor](https://cursor.com/docs/plugins) — root `plugin.json`
+- [GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/copilot-cli/customize-copilot/plugins-creating) — root `plugin.json`
+
+It also works with any agent that supports `SKILL.md` skills: [Claude Desktop](https://claude.ai/download) (Cowork), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and the skills.sh ecosystem.
 
 ---
 

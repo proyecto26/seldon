@@ -1,0 +1,20 @@
+{
+  "name": "seldon-marketplace",
+  "interface": {
+    "displayName": "Seldon"
+  },
+  "plugins": [
+    {
+      "name": "seldon",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

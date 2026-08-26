@@ -19,5 +19,18 @@
     "judge",
     "rfc-review",
     "spec-review"
-  ]
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Seldon",
+    "shortDescription": "Independent plan/spec reviewer with structured verdicts",
+    "longDescription": "Feed Seldon a plan, spec, or proposal. It reads the document, inspects your workspace for evidence, and returns a verdict (approve, approve_with_changes, request_major_revision) with a confidence score and severity-tagged findings.",
+    "developerName": "Proyecto 26",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/proyecto26/seldon",
+    "defaultPrompt": [
+      "Use Seldon to review docs/plan.md",
+      "Use Seldon to judge this RFC with focus on safety"
+    ]
+  }
 }

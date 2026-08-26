@@ -1,11 +1,13 @@
 ---
 name: seldon
-description: This skill should be used when the user asks to "review my plan", "judge this spec", "verify this design doc", "second opinion on this RFC", "run seldon", or wants an independent verdict on a plan, spec, or design document. Sends the provided files to an external judge (Anthropic, OpenAI, or Codex via plugin) or performs an inline workspace review, and returns a structured verdict. Note — API runners (anthropic, openai) can only evaluate files explicitly passed to them; only the codex runner and the inline reviewer can traverse the workspace.
+description: Use when the user asks to "review my plan", "judge this spec", "verify this design doc", "second opinion on this RFC", "run seldon", or wants an independent verdict on a plan, spec, or design document. Sends the files to an external judge (Anthropic, OpenAI, or Codex) or performs an inline workspace review, and returns a structured verdict with confidence and findings.
 ---
 
 # Seldon — Independent Plan Reviewer
 
 Act as an independent reviewer evaluating a plan written by another agent or human. Judge it on its merits — do not co-author, rewrite, or soften findings.
+
+This skill is host-agnostic: it runs the same way in Claude Code, OpenAI Codex, Cursor, and GitHub Copilot CLI. Runner scope differs by judge — the API runners (`anthropic`, `openai`) can only evaluate files explicitly passed to them; the `codex` runner and the inline reviewer can traverse the workspace.
 
 ## Inputs to gather
 
@@ -24,21 +26,21 @@ This skill ships with three external judge runners in its own `scripts/` directo
 
 | Script | Judge | Default model | Required |
 |--------|-------|---------------|----------|
-| `scripts/codex.sh` | Codex via plugin companion | codex default | codex plugin installed |
+| `scripts/codex.sh` | OpenAI Codex (CLI, or Claude Code companion plugin) | codex default | `codex` CLI on PATH **or** Codex plugin for Claude Code |
 | `scripts/anthropic.sh` | Anthropic API (Claude) | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
 | `scripts/openai.sh` | OpenAI API (GPT) | `gpt-4o` | `OPENAI_API_KEY` |
 
 All three runners depend on the JSON Schema file **`seldon.schema.json`**, which defines the verdict shape (see Step 4). The scripts look for it first in the skill root (next to this `SKILL.md`), then in `scripts/`. If neither location has it, the scripts exit with an error. Verify the schema is present before invoking any runner; if missing, surface this to the user as a setup error rather than retrying.
 
 **Scope of each runner**:
-- `codex` — spawns a Codex agent rooted at the caller's git workspace (`git rev-parse --show-toplevel`, falling back to `pwd`). The agent can read other workspace files to verify claims. The plan path itself need not be inside the workspace, but Codex's verification value drops if the workspace is unrelated to the plan.
+- `codex` — spawns a read-only Codex agent rooted at the caller's git workspace (`git rev-parse --show-toplevel`, falling back to `pwd`). The agent can read other workspace files to verify claims. The plan path itself need not be inside the workspace, but Codex's verification value drops if the workspace is unrelated to the plan. Backend is auto-selected: a compatible `codex` CLI on PATH (`codex exec --output-schema`, so the verdict shape is enforced by Codex itself); inside a Claude Code session only, it falls back to `codex-companion.mjs` from the Codex plugin for Claude Code. Force one with `SELDON_CODEX_BACKEND=cli|companion` (the companion must be requested explicitly outside Claude Code, since it runs with that installation's configuration and credentials).
 - `anthropic` / `openai` — see only the files explicitly passed as arguments; their system prompt states this constraint. Pass all relevant supporting files (schemas, configs, referenced code) as extra arguments if workspace verification matters.
 
 Resolve the judge as follows:
 
 1. If the user picked an explicit judge (`anthropic`, `openai`, `codex`, or `inline`), use that and skip the probe.
 2. Otherwise (`auto`), probe in this order and pick the first available:
-   - `codex-companion.mjs` found in `~/.claude/plugins` → run `scripts/codex.sh`
+   - `codex` CLI on PATH, or `codex-companion.mjs` found in `~/.claude/plugins` → run `scripts/codex.sh`
    - `ANTHROPIC_API_KEY` is set → run `scripts/anthropic.sh`
    - `OPENAI_API_KEY` is set → run `scripts/openai.sh`
    - None available → fall through to inline review (Step 2 onward).
@@ -55,6 +57,7 @@ Calling via `bash` keeps the runner working regardless of file mode, so no `chmo
 
 - `JUDGE_MODEL` — override the default model on any runner.
 - `JUDGE_REASONING` — codex only (default `xhigh`).
+- `SELDON_CODEX_BACKEND` — codex only: `cli` or `companion` (default: auto, CLI preferred).
 
 Each script returns JSON matching the verdict shape described in Step 4 on stdout. Parse the JSON and skip directly to Step 4.
 
@@ -137,10 +140,10 @@ JSON Schema (Draft 2020-12) that defines the verdict object the runners return. 
 
 External judge runners live next to this `SKILL.md`. Each accepts `--focus <mode> <plan-file> [supporting-files...]` and emits verdict JSON on stdout matching `seldon.schema.json`.
 
-- **`scripts/codex.sh`** — Invokes `codex-companion.mjs task --json` from the [Codex plugin](https://github.com/openai/codex-plugin-cc). Discovers the companion automatically from `~/.claude/plugins`. Requires the Codex plugin to be installed (`/codex:setup`). Embeds the schema in the prompt; parses the verdict JSON from `rawOutput`. Override model with `JUDGE_MODEL`, reasoning effort with `JUDGE_REASONING` (default `xhigh`).
+- **`scripts/codex.sh`** — Runs OpenAI Codex as the judge. Prefers the `codex` CLI on PATH (`codex exec --sandbox read-only --output-schema seldon.schema.json`, final message read from `--output-last-message`); falls back to `codex-companion.mjs task --json` from the [Codex plugin for Claude Code](https://github.com/openai/codex-plugin-cc) (`/codex:setup`), parsing the verdict from `rawOutput`. The CLI is only selected if `codex exec --help` advertises every flag the runner uses. Both backends share the prompt, focus instructions, fence-stripping, and a schema check against `seldon.schema.json` — invalid verdicts exit non-zero. Override model with `JUDGE_MODEL`, reasoning effort with `JUDGE_REASONING` (default `xhigh`), backend with `SELDON_CODEX_BACKEND`.
 - **`scripts/anthropic.sh`** — Calls the Anthropic Messages API. Reads `ANTHROPIC_API_KEY`. Default model `claude-sonnet-4-6` (override with `JUDGE_MODEL`).
 - **`scripts/openai.sh`** — Calls the OpenAI Chat Completions API with `response_format=json_object`. Reads `OPENAI_API_KEY`. Default model `gpt-4o` (override with `JUDGE_MODEL`).
-- **`scripts/validate.sh`** — End-to-end harness: chooses a judge (auto / explicit), runs it, validates the JSON against `seldon.schema.json` using Python's `jsonschema`, and prints a one-line confidence summary. Use it for smoke-testing a runner before relying on its output.
+- **`scripts/validate.sh`** — End-to-end harness: chooses a judge (auto / explicit), runs it, validates the JSON against `seldon.schema.json` using Python's `jsonschema`, and prints a one-line confidence summary. In auto mode every available judge is a candidate in order (codex → anthropic → openai); a candidate succeeds only if it exits 0 and its output validates against the schema, otherwise the next one runs. It fails only when all candidates fail. Use it for smoke-testing a runner before relying on its output.
 
 All three judge runners share the same post-processing: detect API-level errors, strip markdown fences, and verify the body parses as JSON before emitting to stdout. They will exit non-zero on any of those failures.
 
